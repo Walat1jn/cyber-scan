@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scan Complete</title>
+<meta name="description" content="See what this page figured out about you without asking.">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#121923; --line:#223044; --text:#e6edf5; --muted:#9bb0c7;
+    --green:#3dffa0; --amber:#ffc857; --red:#ff6b6b; --blue:#6cb6ff;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font:16px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+    background-image:radial-gradient(1200px 500px at 50% -10%,#10304a55,transparent);
+  }
+  main{max-width:640px; margin:0 auto; padding:24px 16px 64px}
+  .tag{color:var(--green); font-size:13px; letter-spacing:.12em; margin:0 0 8px}
+  h1{font-size:clamp(26px,7vw,38px); line-height:1.15; margin:0 0 10px}
+  h2{font-size:20px; margin:0 0 8px}
+  .sub{color:var(--muted); margin:0 0 18px}
+  .bar{height:6px; background:var(--panel); border-radius:99px; overflow:hidden; margin:0 0 20px}
+  #progress{height:100%; width:0; background:linear-gradient(90deg,var(--green),var(--blue)); transition:width .3s}
+  .row{
+    background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--green);
+    border-radius:10px; padding:12px 14px; margin:0 0 10px;
+    animation:pop .35s ease-out both;
+  }
+  .row.blocked{border-left-color:var(--blue)}
+  .label{color:var(--muted); font-size:12px; letter-spacing:.1em; text-transform:uppercase}
+  .value{font-size:18px; font-weight:700; word-break:break-word; margin:2px 0}
+  .note{color:var(--muted); font-size:14px}
+  .tagline{font-size:12px; color:var(--blue)}
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px; margin:20px 0; animation:pop .5s ease-out both;
+  }
+  .fp{
+    font-size:clamp(22px,7vw,34px); font-weight:800; color:var(--green);
+    letter-spacing:.06em; word-break:break-all; margin:6px 0 10px;
+    text-shadow:0 0 18px #3dffa055;
+  }
+  .stats{display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 0}
+  .stat{flex:1 1 140px; background:#0e141c; border:1px solid var(--line); border-radius:10px; padding:10px}
+  .stat b{display:block; font-size:24px; color:var(--amber)}
+  ul.tips{padding-left:20px; margin:8px 0 0}
+  ul.tips li{margin:0 0 10px}
+  button, a.btn{
+    display:inline-block; font:inherit; font-weight:700; color:#06210f; background:var(--green);
+    border:0; border-radius:10px; padding:14px 18px; min-height:48px; cursor:pointer; text-decoration:none;
+  }
+  button:focus-visible,a.btn:focus-visible{outline:3px solid var(--amber); outline-offset:3px}
+  .secondary{background:transparent; color:var(--text); border:1px solid var(--line)}
+  .code{
+    font-size:clamp(26px,9vw,40px); font-weight:800; color:var(--amber); text-align:center;
+    border:2px dashed var(--amber); border-radius:12px; padding:16px; margin:14px 0 0;
+  }
+  .sms{position:relative; background:#0e141c; border:1px solid var(--line); border-radius:16px; padding:14px; margin:12px 0}
+  .sms p{margin:0; padding-top:22px; word-break:break-word}
+  .badge{position:absolute; top:8px; right:10px; font-size:11px; letter-spacing:.1em; color:var(--amber);
+    border:1px solid var(--amber); border-radius:99px; padding:1px 8px}
+  .cmp-row{display:flex; gap:10px; flex-wrap:wrap; margin:8px 0}
+  input[type=text]{
+    flex:1 1 140px; min-height:48px; font:inherit; font-size:16px; color:var(--text);
+    background:#0e141c; border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    text-transform:uppercase; letter-spacing:.15em;
+  }
+  input[type=text]:focus-visible{outline:3px solid var(--amber); outline-offset:2px}
+  footer{color:var(--muted); font-size:13px; margin-top:28px}
+  [hidden]{display:none !important}
+  @keyframes pop{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    .row,.panel{animation:none}
+    #progress{transition:none}
+  }
+</style>
+</head>
+<body>
+<main>
+  <p class="tag" id="tag">// SCAN IN PROGRESS</p>
+  <h1 id="headline">Scanning your device...</h1>
+  <p class="sub" id="sub">Nobody asked you for anything. Watch what this page figures out anyway.</p>
+  <div class="bar" aria-hidden="true"><div id="progress"></div></div>
+
+  <noscript><p class="note">This page needs JavaScript to run its scan. That is the point: JavaScript is how sites learn all of this.</p></noscript>
+
+  <section id="results" aria-live="polite"></section>
+
+  <section class="panel" id="fpPanel" hidden>
+    <p class="label">Your fingerprint ID</p>
+    <div class="fp" id="fpValue">...</div>
+    <p class="note">This ID was built only from your device traits, not your IP address. No cookie, no login. Reload the page and you should get the same one. Websites that combine many more traits than this can recognize a device without ever storing anything on it.</p>
+    <div class="stats">
+      <div class="stat"><b id="statFacts">0</b>facts collected</div>
+      <div class="stat"><b>0</b>permission pop-ups</div>
+      <div class="stat"><b>1</b>outside lookup (your IP)</div>
+    </div>
+    <p class="label" style="margin-top:18px">Compare with a neighbor</p>
+    <p class="note">Your short code is <b id="shortCode" style="color:var(--amber)">----</b>. Ask someone next to you for theirs and type it here.</p>
+    <div class="cmp-row">
+      <input id="cmpInput" type="text" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Their code" aria-label="Your neighbor's short code">
+      <button type="button" id="cmpBtn">Compare</button>
+    </div>
+    <p class="note" id="cmpOut" aria-live="polite"></p>
+  </section>
+
+  <section class="panel" id="scamPanel" hidden>
+    <p class="label">What a scammer could do with this</p>
+    <h2>Meet your personalized scam text</h2>
+    <p class="note">Example only. The company is made up, the link doesn't work, and nothing was sent to your phone.</p>
+    <div class="sms" role="img" aria-label="Example scam text message">
+      <span class="badge">EXAMPLE</span>
+      <p id="smsText"></p>
+    </div>
+    <p class="note">Red flags to look for:</p>
+    <ul class="tips">
+      <li><b>Fake urgency.</b> "Within 24 hours" is meant to make you act before you think.</li>
+      <li><b>Details that make it feel real.</b> It names your device, browser, and rough location. You just watched how easy those are to collect.</li>
+      <li><b>A strange link.</b> Don't tap it. Open the company's real app or website yourself instead.</li>
+    </ul>
+  </section>
+
+  <section class="panel" id="geoPanel" hidden>
+    <p class="label">Rough vs. exact</p>
+    <h2>How much more can an app learn?</h2>
+    <p class="note">Your IP address gave this rough guess: <b id="geoGuess">...</b>. You were never asked. Now see what changes when you give permission. Your exact location stays on your device, and this page doesn't send it anywhere.</p>
+    <button type="button" id="geoBtn">Share my exact location</button>
+    <div class="note" id="geoOut" aria-live="polite" style="margin-top:12px"></div>
+  </section>
+
+  <section class="panel" id="lesson" hidden>
+    <h2>Why this matters</h2>
+    <p class="note">Advertisers, data brokers, and attackers all use traits like these. Attackers use them to craft convincing scams, like a fake update message that names your exact phone and browser.</p>
+    <h2 style="margin-top:16px">What you can do</h2>
+    <ul class="tips">
+      <li><b>Pick a browser with tracking protection.</b> Safari, Firefox, and Brave all limit fingerprinting. Notice the blue "hidden" rows above.</li>
+      <li><b>A VPN is not enough.</b> It hides your network address, but not your screen, browser, or graphics chip.</li>
+      <li><b>Review site permissions</b> for location, camera, and notifications in your browser settings.</li>
+      <li><b>Keep your software updated.</b> Old versions make you easier to pick out and easier to attack.</li>
+      <li><b>Think before you scan.</b> You just scanned a QR code to get here. Unknown QR codes can lead to fake login pages, so check the web address before you type anything.</li>
+    </ul>
+  </section>
+
+  <section class="panel" id="prize" hidden>
+    <h2>Mission complete</h2>
+    <p class="note">Show this screen to a team member to claim your prize.</p>
+    <button type="button" id="claim">Reveal my code word</button>
+    <div class="code" id="codeWord" hidden></div>
+    <p style="margin:14px 0 0" id="nextWrap" hidden><a class="btn secondary" id="nextLink" href="#"></a></p>
+  </section>
+
+  <footer>
+    Almost everything on this page ran on your own device. The one exception is the IP rows: this page asked a free public lookup service (ipwho.is) about your address, which any website can do because your IP is visible to every site you visit. This page keeps no records on any server. The only thing it saves is a visit counter on your own device. Don't take our word for it: use "View page source" in your browser and read the code.
+  </footer>
+</main>
+
+<script>
+/* ======== EDIT THESE ======== */
+const CONFIG = {
+  codeWord: "BOILER UP",          // shown when the student taps "Reveal my code word"
+  nextLabel: "",                  // e.g. "Play the escape room"; leave "" to hide the button
+  nextUrl: ""                     // e.g. "https://lawsondanielle.github.io/spirit_day_escape_room/"
+};
+/* ============================ */
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const pause = (ms) => reduceMotion ? Promise.resolve() : sleep(ms);
+
+let myId = "";      // this device's fingerprint ID, set after the scan
+let ipData = null;  // result of the IP lookup, set after the scan
+
+/* Visit counter kept in this browser's local storage (never uploaded). */
+function visitMemory() {
+  try {
+    const key = "scanDemoVisit";
+    const prev = JSON.parse(localStorage.getItem(key) || "null");
+    const rec = prev && prev.count ? { first: prev.first, count: prev.count + 1 } : { first: Date.now(), count: 1 };
+    localStorage.setItem(key, JSON.stringify(rec));
+    if (rec.count === 1) return "First visit. This page just left a note on your device.";
+    const when = new Date(rec.first).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    return "Visit #" + rec.count + ". First seen " + when + ".";
+  } catch (e) { return null; }
+}
+
+function distanceMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8, rad = (d) => (d * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function detectOS() {
+  const ua = navigator.userAgent;
+  if (/iPhone/.test(ua)) return "iPhone (iOS)";
+  if (/iPad/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) return "iPad (iPadOS)";
+  if (/Android/.test(ua)) return "Android device";
+  if (/Windows/.test(ua)) return "Windows computer";
+  if (/CrOS/.test(ua)) return "Chromebook";
+  if (/Mac OS X/.test(ua)) return "Mac computer";
+  if (/Linux/.test(ua)) return "Linux computer";
+  return "Unknown device";
+}
+
+function detectBrowser() {
+  const ua = navigator.userAgent;
+  if (/Edg(A|iOS)?\//.test(ua)) return "Microsoft Edge";
+  if (/OPR\/|Opera/.test(ua)) return "Opera";
+  if (/SamsungBrowser/.test(ua)) return "Samsung Internet";
+  if (/Firefox|FxiOS/.test(ua)) return "Firefox";
+  if (/CriOS|Chrome/.test(ua)) return "Chrome";
+  if (/Safari/.test(ua)) return "Safari";
+  return "Unknown browser";
+}
+
+function gpuName() {
+  try {
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl") || c.getContext("experimental-webgl");
+    if (!gl) return null;
+    const ext = gl.getExtension("WEBGL_debug_renderer_info");
+    if (!ext) return null;
+    return gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || null;
+  } catch (e) { return null; }
+}
+
+function canvasSignature() {
+  try {
+    const c = document.createElement("canvas");
+    c.width = 240; c.height = 60;
+    const x = c.getContext("2d");
+    x.textBaseline = "top";
+    x.font = "16px Arial";
+    x.fillStyle = "#f60"; x.fillRect(100, 1, 62, 20);
+    x.fillStyle = "#069"; x.fillText("Cwm fjordbank glyphs vext quiz", 2, 15);
+    x.fillStyle = "rgba(102,204,0,0.7)"; x.fillText("Cwm fjordbank glyphs vext quiz", 4, 17);
+    return c.toDataURL();
+  } catch (e) { return "no-canvas"; }
+}
+
+async function batteryInfo() {
+  if (!navigator.getBattery) return null;
+  try {
+    const b = await Promise.race([navigator.getBattery(), sleep(800).then(() => null)]);
+    if (!b) return null;
+    return Math.round(b.level * 100) + "%" + (b.charging ? " (charging)" : " (not charging)");
+  } catch (e) { return null; }
+}
+
+async function sha256Hex(text) {
+  if (window.crypto && crypto.subtle) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) >>> 0;
+  return h.toString(16).padStart(8, "0").repeat(8);
+}
+
+async function buildItems() {
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const gpu = gpuName();
+  const battery = await batteryInfo();
+  const gpc = navigator.globalPrivacyControl;
+  const dnt = navigator.doNotTrack;
+  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+  return [
+    { label: "Device", value: detectOS(),
+      note: "Your browser announces this to every site you visit." },
+    { label: "Browser", value: detectBrowser(),
+      note: "Knowing the browser tells an attacker which known bugs might work on you." },
+    { label: "Screen", value: screen.width + " x " + screen.height + " at " + (window.devicePixelRatio || 1) + "x sharpness",
+      note: "Screen size plus sharpness narrows down your exact phone model." },
+    { label: "Window size", value: window.innerWidth + " x " + window.innerHeight,
+      note: "Even how you hold your phone and which toolbars are showing leaks a little." },
+    { label: "Language", value: (navigator.languages && navigator.languages.length ? navigator.languages.join(", ") : navigator.language) || null,
+      note: "Languages you read hint at where you are from." },
+    { label: "Time zone", fpValue: tz, value: tz ? tz.replace("_", " ") + " (" + new Date().toLocaleTimeString() + " for you)" : null,
+      note: "Your time zone places you in a region without any location permission." },
+    { label: "Processor cores", value: navigator.hardwareConcurrency ? String(navigator.hardwareConcurrency) : null,
+      note: "A strong hint about how new and powerful your device is." },
+    { label: "Memory", value: navigator.deviceMemory ? "about " + navigator.deviceMemory + " GB" : null,
+      note: "Another hardware clue. Some browsers hide it on purpose." },
+    { label: "Graphics chip", value: gpu,
+      note: "Your graphics hardware is surprisingly specific, which makes it a favorite for fingerprinting." },
+    { label: "Connection", value: conn && conn.effectiveType ? conn.effectiveType.toUpperCase() + " speed" + (conn.saveData ? ", data saver on" : "") : null,
+      note: "Reveals whether you are likely on Wi-Fi or cellular." },
+    { label: "Battery", value: battery,
+      note: "Battery level was once used to track people across sites, so most browsers now block it." },
+    { label: "Touchscreen", value: navigator.maxTouchPoints > 0 ? "Yes, up to " + navigator.maxTouchPoints + " fingers" : "No",
+      note: "Separates phones and tablets from laptops." },
+    { label: "Appearance", value: dark ? "Dark mode" : "Light mode",
+      note: "Even your theme preference adds to the pile." },
+    { label: "Visit memory", value: visitMemory(),
+      blockedValue: "Storage blocked", blockedNote: "Your browser wouldn't let this page save anything. That's a privacy win.",
+      note: "Sites use cookies and local storage like this to recognize you when you return. Reload this page and watch the count go up." },
+    { label: "How you got here", value: document.referrer ? document.referrer : "No referrer. You scanned or typed the address directly.",
+      note: "Sites can see which page or app sent you to them.", always: true },
+    { label: "Privacy signals", value: (gpc === true || dnt === "1") ? "You asked sites not to track you (many ignore it)" : "You have not asked sites to stop tracking you",
+      note: "Do Not Track and Global Privacy Control are requests, not guarantees.", always: true }
+  ];
+}
+
+/* One request to a free public IP lookup service. Any website can do this,
+   because your IP address is visible to every site you visit. */
+async function fetchIpInfo() {
+  const tryFetch = async (url, parse) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 4000);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, cache: "no-store", referrerPolicy: "no-referrer" });
+      if (!res.ok) return null;
+      return parse(await res.json());
+    } catch (e) { return null; } finally { clearTimeout(timer); }
+  };
+  const first = await tryFetch("https://ipwho.is/", (d) =>
+    d && d.success !== false && d.ip ? {
+      ip: d.ip,
+      isp: (d.connection && (d.connection.isp || d.connection.org)) || null,
+      place: [d.city, d.region, d.country].filter(Boolean).join(", ") || null,
+      lat: typeof d.latitude === "number" ? d.latitude : null,
+      lon: typeof d.longitude === "number" ? d.longitude : null
+    } : null);
+  if (first) return first;
+  return tryFetch("https://ipapi.co/json/", (d) =>
+    d && d.ip && !d.error ? {
+      ip: d.ip,
+      isp: d.org || null,
+      place: [d.city, d.region, d.country_name].filter(Boolean).join(", ") || null,
+      lat: typeof d.latitude === "number" ? d.latitude : null,
+      lon: typeof d.longitude === "number" ? d.longitude : null
+    } : null);
+}
+
+function ipItems(ip) {
+  const failNote = "Couldn't reach the lookup service. You may be offline, or an ad blocker protected you.";
+  return [
+    { label: "Your IP address", value: ip && ip.ip, blockedValue: "Lookup blocked", blockedNote: failNote,
+      note: "Every site you visit sees this address. It is how data finds your device on the internet." },
+    { label: "Internet provider", value: ip && ip.isp, blockedValue: "Lookup blocked", blockedNote: failNote,
+      note: "Your IP address is registered to the company providing your connection. On shared Wi-Fi, everyone nearby has the same one." },
+    { label: "Approximate location", value: ip && ip.place, blockedValue: "Lookup blocked", blockedNote: failNote,
+      note: "A rough, city-level guess from your IP address, often off by a town or more. No location permission needed." },
+    { label: "MAC address", value: null, blockedValue: "Not visible to websites",
+      blockedNote: "Your device's hardware address never leaves your local Wi-Fi network, and modern phones randomize it for each network anyway." }
+  ];
+}
+
+function renderRow(item) {
+  const hidden = item.value === null || item.value === undefined || item.value === "";
+  const row = document.createElement("div");
+  row.className = "row" + (hidden ? " blocked" : "");
+  const label = document.createElement("div"); label.className = "label"; label.textContent = item.label;
+  const value = document.createElement("div"); value.className = "value";
+  value.textContent = hidden ? (item.blockedValue || "Hidden by your browser") : item.value;
+  const note = document.createElement("div"); note.className = "note";
+  note.textContent = hidden ? (item.blockedNote || "Good news: your browser kept this one to itself.") : item.note;
+  row.append(label, value, note);
+  $("results").appendChild(row);
+  row.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+  return !hidden;
+}
+
+async function run() {
+  const ipPromise = fetchIpInfo();           // starts in the background while the scan animates
+  const items = await buildItems();
+  const total = items.length + 4;            // 4 network rows come last
+  let revealed = 0;
+  let collected = 0;
+  const reveal = async (item) => {
+    await pause(420);
+    if (renderRow(item)) collected++;
+    revealed++;
+    $("progress").style.width = Math.round((revealed / total) * 100) + "%";
+  };
+
+  for (const item of items) await reveal(item);
+  const ip = await ipPromise;
+  for (const item of ipItems(ip)) await reveal(item);
+
+  // Fingerprint uses only stable device traits (not IP, time, window size, or battery).
+  const skipFp = new Set(["Window size", "Battery", "Connection", "Visit memory", "How you got here", "Privacy signals"]);
+  const signals = items
+    .filter((i) => !skipFp.has(i.label))
+    .map((i) => i.label + "=" + (i.fpValue !== undefined ? i.fpValue : i.value))
+    .join("|") + "|" + canvasSignature();
+  const hash = (await sha256Hex(signals)).toUpperCase();
+  const id = hash.slice(0, 16).match(/.{4}/g).join("-");
+  myId = id;
+  ipData = ip;
+  $("shortCode").textContent = id.slice(0, 4);
+
+  $("tag").textContent = "// SCAN COMPLETE";
+  $("headline").textContent = collected + " facts about you, found in seconds.";
+  $("sub").textContent = "All without a login, a cookie, or a single permission prompt.";
+  $("statFacts").textContent = collected;
+
+  await pause(500);
+  $("fpPanel").hidden = false;
+  $("fpPanel").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  if (reduceMotion) {
+    $("fpValue").textContent = id;
+  } else {
+    const chars = "0123456789ABCDEF";
+    for (let step = 0; step <= id.length; step++) {
+      let out = id.slice(0, step);
+      for (let k = step; k < id.length; k++) out += id[k] === "-" ? "-" : chars[Math.floor(Math.random() * 16)];
+      $("fpValue").textContent = out;
+      await sleep(70);
+    }
+  }
+  $("fpValue").textContent = id;
+
+  await pause(900);
+  const device = String(items[0].value || "device").replace(/\s*\(.*\)/, "");
+  const browserName = String(items[1].value || "browser");
+  const near = ip && ip.place ? " near " + ip.place : "";
+  $("smsText").textContent =
+    "NimbusSecure Alert: An unusual sign-in was blocked on your " + device + " using " + browserName + near +
+    ". Verify within 24 hours or your account will be locked: nimbus-secure-verify.example/login";
+  $("scamPanel").hidden = false;
+
+  await pause(900);
+  $("geoGuess").textContent = ip && ip.place ? ip.place : "(the lookup was blocked)";
+  $("geoPanel").hidden = false;
+
+  await pause(600);
+  $("lesson").hidden = false;
+  await pause(300);
+  $("prize").hidden = false;
+}
+
+function compareCodes() {
+  const out = $("cmpOut");
+  const theirs = $("cmpInput").value.trim().toUpperCase();
+  if (theirs.length !== 4) { out.textContent = "Type the 4-character code from your neighbor's screen."; return; }
+  out.textContent = theirs === myId.slice(0, 4)
+    ? "Match! To a tracker, your two devices look the same so far. Real trackers collect far more traits to tell similar phones apart."
+    : "Different. Something about your devices or settings isn't the same, and that's all a tracker needs to tell you apart.";
+}
+$("cmpBtn").addEventListener("click", compareCodes);
+$("cmpInput").addEventListener("keydown", (e) => { if (e.key === "Enter") compareCodes(); });
+
+function showGeoLines(lines) {
+  $("geoOut").replaceChildren(...lines.map((t) => {
+    const p = document.createElement("p");
+    p.style.margin = "0 0 8px";
+    p.textContent = t;
+    return p;
+  }));
+}
+
+$("geoBtn").addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    showGeoLines(["This browser doesn't offer exact location to web pages."]);
+    return;
+  }
+  showGeoLines(["Waiting for your answer to the permission prompt..."]);
+  navigator.geolocation.getCurrentPosition((pos) => {
+    const { latitude, longitude, accuracy } = pos.coords;
+    const lines = ["Exact position: " + latitude.toFixed(4) + ", " + longitude.toFixed(4) +
+      " (accurate to about " + Math.round(accuracy) + " meters)."];
+    if (ipData && ipData.lat !== null && ipData.lon !== null) {
+      const mi = distanceMiles(latitude, longitude, ipData.lat, ipData.lon);
+      const miText = mi < 10 ? mi.toFixed(1) : String(Math.round(mi));
+      const kmText = mi * 1.609 < 10 ? (mi * 1.609).toFixed(1) : String(Math.round(mi * 1.609));
+      lines.push("Your IP address guessed a spot about " + miText + " miles (" + kmText + " km) from where you really are.");
+    }
+    lines.push("The rough guess needed no permission. The exact one needed your tap. Any app with this permission can see exactly this, so check which ones have it in your phone's location settings.");
+    lines.push("This page did not send your location anywhere.");
+    showGeoLines(lines);
+  }, (err) => {
+    if (err && err.code === 1) {
+      showGeoLines([
+        "You said no. Good instinct if you weren't sure who was asking.",
+        "Notice the difference: your IP address gave a rough guess without asking, but exact location needed your permission. Check which apps have it in your phone's location settings."
+      ]);
+    } else {
+      showGeoLines(["Couldn't get an exact location (it timed out or isn't available here). Try again outdoors or near a window."]);
+    }
+  }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+});
+
+$("claim").addEventListener("click", () => {
+  $("codeWord").textContent = CONFIG.codeWord;
+  $("codeWord").hidden = false;
+  $("claim").hidden = true;
+  if (CONFIG.nextUrl && CONFIG.nextLabel) {
+    $("nextLink").textContent = CONFIG.nextLabel;
+    $("nextLink").href = CONFIG.nextUrl;
+    $("nextWrap").hidden = false;
+  }
+});
+
+run();
+</script>
+</body>
+</html>
