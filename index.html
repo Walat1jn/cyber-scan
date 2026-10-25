@@ -99,6 +99,10 @@
   .protect ul{margin:0; padding:14px 16px 6px 34px}
   .protect li{margin:0 0 10px}
   .protect .band{background:var(--gold); color:#000; text-align:center; font-weight:800; padding:8px}
+  .typo{width:100%; border-collapse:collapse; margin:12px 0; font-size:15px}
+  .typo th{text-align:left; color:var(--muted); font-size:12px; letter-spacing:.1em; text-transform:uppercase; padding:6px 8px; border-bottom:1px solid var(--line)}
+  .typo td{padding:9px 8px; border-bottom:1px solid var(--line); vertical-align:top}
+  .typo td:last-child{font-weight:700; color:var(--rush); word-break:break-word}
   .courses h2{font-style:italic}
   .courses a{color:var(--gold)}
   footer{color:var(--muted); font-size:13px; margin-top:28px}
@@ -172,6 +176,26 @@
     <h2>Preview the link before you open it</h2>
     <p class="note">When your camera sees a QR code, it shows the web address in a banner. That banner is your "hover." Here are a few codes. Look at the address and decide: open it or skip it?</p>
     <div id="qrBox"></div>
+  </section>
+
+  <section class="panel" id="typoPanel" hidden>
+    <p class="label">Learning point</p>
+    <h2>Typosquatting: one letter off</h2>
+    <p class="note">Attackers register web addresses that look almost exactly like a real one and count on you not noticing. A QR code hides the address until the moment you scan it, which makes this trick even easier. Here is how it works, using purdue.edu as the target.</p>
+    <table class="typo">
+      <thead><tr><th>Technique</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Intentional spelling error</td><td class="mono">purdeu.edu</td></tr>
+        <tr><td>Alternative spelling</td><td class="mono">perdue.edu</td></tr>
+        <tr><td>Transposition (swapped characters)</td><td class="mono">prudeu.edu</td></tr>
+        <tr><td>Adding or omitting characters</td><td class="mono">purrdue.edu</td></tr>
+        <tr><td>Homoglyphs (lookalike characters, like a 0 for an O)</td><td class="mono">purdu3.edu</td></tr>
+        <tr><td>Unicode characters</td><td class="mono">&#x440;urdue.edu</td></tr>
+        <tr><td>Different top-level domain</td><td class="mono">purdue.org</td></tr>
+      </tbody>
+    </table>
+    <p class="note"><b>The Unicode one is the scariest.</b> The first letter is a Cyrillic "&#x440;", not a Latin "p". On your screen the two look identical, so reading carefully won't save you. That is why the safest habit is to go to the site yourself or use the official app.</p>
+    <p class="note">These are examples of the pattern. Some may be real sites, so don't go looking for them.</p>
   </section>
 
   <section class="panel" id="lesson" hidden>
@@ -416,9 +440,9 @@ const QR_CASES = [
   { where: "A card on a table, no company name, no explanation.",
     scheme: "https://", host: "bit.ly", rest: "/3xK9fQ", safe: false,
     why: "A shortened link hides where it goes. You can't know the real destination until it is too late, so skip codes you can't explain." },
-  { where: "A table tent for CampusBites, the dining app you already use: \"Scan for free fries!\"",
-    scheme: "https://", host: "campusbitse.example", rest: "/free-fries", safe: false,
-    why: "The sneakiest kind: typosquatting. The real name is campusbites, but this one swaps two letters (bitse). Scammers register addresses one typo away from the real thing and count on you skimming. Read the name letter by letter, or open the app yourself." }
+  { where: "A poster at a job fair: \"Scan to sign in with your Purdue login.\"",
+    scheme: "https://", host: "www.purdeu.edu", rest: "/careers/login", safe: false,
+    why: "Typosquatting! Read it slowly: purdeu, not purdue. Two letters are swapped. Attackers register addresses like this to steal logins from people who skim. See the examples below, and sign in only from a site you typed yourself." }
 ];
 
 let qrIndex = 0, qrScore = 0;
@@ -489,11 +513,13 @@ function renderQrDone() {
 
 async function showAfterQr() {
   await pause(500);
+  $("typoPanel").hidden = false;
+  $("typoPanel").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  await pause(1200);
   $("lesson").hidden = false;
   await pause(300);
   $("prize").hidden = false;
   $("courses").hidden = false;
-  $("lesson").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
 }
 
 /* ---------- main scan ---------- */
@@ -548,8 +574,8 @@ async function run() {
   const device = String(items[0].value || "device").replace(/\s*\(.*\)/, "");
   const browserName = String(items[1].value || "browser");
   $("smsText").textContent =
-    "NimbusSecure Alert: An unusual sign-in was blocked on your " + device + " using " + browserName +
-    ". Verify within 24 hours or your account will be locked: nimbus-secure-verify.example/login";
+    "Midland Trust Bank Alert: We blocked an unusual sign-in to your account from a " + device + " using " + browserName +
+    ". Confirm it was you within 24 hours or your account will be locked: midlandtrust-secure.example/verify";
   $("scamPanel").hidden = false;
 
   await pause(900);
