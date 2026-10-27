@@ -105,6 +105,11 @@
   .typo td:last-child{font-weight:700; color:var(--rush); word-break:break-word}
   .courses h2{font-style:italic}
   .courses a{color:var(--gold)}
+  details.why{margin:8px 0 0}
+  details.why summary{cursor:pointer; color:var(--gold); font-size:14px; font-weight:700; padding:4px 0; min-height:32px}
+  details.why summary:focus-visible{outline:3px solid var(--text); outline-offset:2px}
+  details.why p{margin:6px 0 0; font-size:14px}
+  details.why .good b{color:var(--ok)} details.why .risk b{color:var(--red)}
   footer{color:var(--muted); font-size:13px; margin-top:28px}
   [hidden]{display:none !important}
   @keyframes pop{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
@@ -155,6 +160,13 @@
     <p class="note" id="cmpOut" aria-live="polite"></p>
   </section>
 
+  <section class="panel" id="whyPanel" hidden>
+    <p class="label">The optimization side</p>
+    <h2>Why does your browser share all this?</h2>
+    <p class="note">Mostly to make the web work. Pages fit your screen, show in your language and local time, send lighter video on a slow connection, and match your dark mode. Tap <b>"Why is this shared?"</b> on any row above to see the helpful use and the risky use side by side.</p>
+    <p class="note"><b>The catch:</b> each trait alone is harmless. Combined, they form a fingerprint that can pick out your device, and the same details help scammers write messages that feel personal. Who collects the data, and what they combine it with, is what makes it a risk.</p>
+  </section>
+
   <section class="panel" id="scamPanel" hidden>
     <p class="label">What a scammer could do with this</p>
     <h2>Meet your personalized scam text</h2>
@@ -174,7 +186,7 @@
   <section class="panel" id="qrPanel" hidden>
     <p class="label">Pete's rule</p>
     <h2>Preview the link before you open it</h2>
-    <p class="note">When your camera sees a QR code, it shows the web address in a banner. That banner is your "hover." Here are a few codes. Look at the address and decide: open it or skip it?</p>
+    <p class="note">When your camera sees a QR code, it shows the web address in a banner. That banner is your "hover." Here are five codes. Look at the address and decide: open it or skip it? Get all five right to capture the flag.</p>
     <div id="qrBox"></div>
   </section>
 
@@ -222,10 +234,9 @@
   </section>
 
   <section class="panel" id="prize" hidden>
-    <h2>Mission complete. Boiler Up!</h2>
-    <p class="note">Show this screen to a team member to claim your prize.</p>
-    <button type="button" id="claim">Reveal my code word</button>
-    <div class="code" id="codeWord" hidden></div>
+    <h2>Flag captured. Boiler Up!</h2>
+    <p class="note">Your flag is below. Submit it in the CTF, or show this screen to a team member to claim your prize.</p>
+    <div class="code" id="codeWord"></div>
     <p style="margin:14px 0 0" id="nextWrap" hidden><a class="btn secondary" id="nextLink" href="#"></a></p>
   </section>
 
@@ -244,7 +255,6 @@
 <script>
 /* ======== EDIT THESE ======== */
 const CONFIG = {
-  codeWord: "BOILER UP",          // shown when the student taps "Reveal my code word"
   nextLabel: "Next: help Pete secure his account",   // "" hides the button
   nextUrl: "https://lawsondanielle.github.io/spirit_day_escape_room/",
   avatarUrl: "",                  // optional photo for Pete's profile circle; "" shows a gold "P"
@@ -436,6 +446,26 @@ function networkItems(ip) {
   ];
 }
 
+const WHY = {
+  "Device": ["Lets sites offer the right app or download for your phone.", "Tells attackers which scams and bugs to aim at you."],
+  "Browser": ["Lets sites work around quirks in your browser.", "Tells an attacker which known bugs might work on you."],
+  "Screen": ["Sizes layouts and sharp images to fit your screen.", "Narrows down your exact phone model."],
+  "Window size": ["Fits the page to the space you actually have, even when you rotate your phone.", "Adds one more detail to a fingerprint."],
+  "Language": ["Shows the page in a language you read.", "Hints at where you are from."],
+  "Time zone": ["Shows event times in your local time.", "Places you in a region without asking."],
+  "Processor cores": ["Lets games and video use your device's power well.", "Adds to a fingerprint."],
+  "Memory": ["Lets heavy pages and apps choose settings that will not freeze your device.", "Adds to a fingerprint."],
+  "Graphics chip": ["Lets 3D and video pick settings that run smoothly.", "Very specific, so it is a favorite fingerprinting trait."],
+  "Connection": ["Lets sites send lighter video on a slow connection.", "Reveals whether you are on Wi-Fi or cellular."],
+  "Battery": ["Lets a site switch to a power-saving mode.", "Was used to track people, so most browsers now block it."],
+  "Touchscreen": ["Shows big touch-friendly buttons instead of tiny links.", "Separates phones from laptops."],
+  "Appearance": ["Matches the site to your dark or light mode.", "One more trait for a fingerprint."],
+  "Visit memory": ["Keeps you signed in and remembers your shopping cart.", "Lets a site recognize you every time you return."],
+  "How you got here": ["Lets site owners see which links and QR codes bring visitors.", "Tells a site where you came from."],
+  "Privacy signals": ["Lets you say you would rather not be tracked.", "Sites are free to ignore the request."],
+  "Approximate location": ["Lets sites show local info, like nearby stores or the right country version.", "Tells a scammer which town to name in a fake text."]
+};
+
 function renderRow(item) {
   const hidden = item.value === null || item.value === undefined || item.value === "";
   const row = document.createElement("div");
@@ -446,6 +476,17 @@ function renderRow(item) {
   const note = document.createElement("div"); note.className = "note";
   note.textContent = hidden ? (item.blockedNote || "Good news: your browser kept this one to itself.") : item.note;
   row.append(label, value, note);
+  const w = WHY[item.label];
+  if (!hidden && w) {
+    const d = document.createElement("details"); d.className = "why";
+    const sm = document.createElement("summary"); sm.textContent = "Why is this shared?";
+    const g = document.createElement("p"); g.className = "good";
+    const gb = document.createElement("b"); gb.textContent = "Helpful: "; g.append(gb, document.createTextNode(w[0]));
+    const r = document.createElement("p"); r.className = "risk";
+    const rb = document.createElement("b"); rb.textContent = "Risky: "; r.append(rb, document.createTextNode(w[1]));
+    d.append(sm, g, r);
+    row.append(d);
+  }
   $("results").appendChild(row);
   row.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
   return !hidden;
@@ -455,23 +496,33 @@ function renderRow(item) {
 /* Fake addresses use .example, which can never point to a real website. */
 const QR_CASES = [
   { where: "A poster in a campus hallway announcing an upcoming event.",
-    scheme: "https://", host: "www.purdue.edu", rest: "/", safe: true,
+    scheme: "https://", host: "www.purdue.edu", rest: "/",
     why: "The owner of the site (the part right before the first single slash) is purdue.edu, and you expected a campus link. This one looks fine. Still, if the code were a sticker pasted over another code, you would want a second look." },
   { where: "A sticker on a parking meter that says \"Pay here fast.\"",
-    scheme: "https://", host: "park-pay-now.example", rest: "/pay", safe: false,
+    scheme: "https://", host: "park-pay-now.example", rest: "/pay",
     why: "An unfamiliar site that wants your payment. Scammers paste their own stickers over real ones on meters. Pay with the official app or the machine itself." },
   { where: "A flyer: \"Free football tickets! Scan to claim.\"",
-    scheme: "https://", host: "purdue.edu.ticket-rewards.example", rest: "/claim", safe: false,
+    scheme: "https://", host: "purdue.edu.ticket-rewards.example", rest: "/claim",
     why: "Tricky one! The real owner is the part right before the first single slash: ticket-rewards.example. The \"purdue.edu\" in front is just a decoy to fool you." },
   { where: "A card on a table, no company name, no explanation.",
-    scheme: "https://", host: "bit.ly", rest: "/3xK9fQ", safe: false,
+    scheme: "https://", host: "bit.ly", rest: "/3xK9fQ",
     why: "A shortened link hides where it goes. You can't know the real destination until it is too late, so skip codes you can't explain." },
   { where: "A poster at a job fair: \"Scan to sign in with your Purdue login.\"",
-    scheme: "https://", host: "www.purdeu.edu", rest: "/careers/login", safe: false,
+    scheme: "https://", host: "www.purdeu.edu", rest: "/careers/login",
     why: "Typosquatting! Read it slowly: purdeu, not purdue. Two letters are swapped. Attackers register addresses like this to steal logins from people who skim. See the examples below, and sign in only from a site you typed yourself." }
 ];
 
-let qrIndex = 0, qrScore = 0;
+/* The flag is stored encrypted. Only the correct set of answers unlocks it. */
+const FLAG_SALT = "BU26";
+const QR_HASHES = ["7402e74a1ee30bdcc9e45b2f5f06a3b64e3b151102a01d530ad1729abc9ca3f3", "a505b59d48d3ed54effd5dc517bdfbe68217414347db903890f042c0b4f21cb2", "937d336e37d8522eb5500072377b7beffe94d52e32bd7ee2628ac6e08032c1bb", "6dc9c9e8bf54f677b31539fbd0356f30d709cdaa71afb7eef5a55318fab091c8", "8dce2d2d5ccc02e450b6c0242f0b7ec6b895b202778d00ee99c0f4b8a948c262"];
+const FLAG_BLOB = "NW4MCCWv7WLmuPlFA92GbwoullF2qP0i9ALfrVqJBKDlOe04JQ==";
+
+let qrIndex = 0, qrScore = 0, qrPicks = [], afterShown = false;
+
+async function sha256Raw(text) {
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
+}
+const toHex = (u8) => Array.from(u8).map((b) => b.toString(16).padStart(2, "0")).join("");
 
 function renderQr() {
   const box = $("qrBox");
@@ -499,9 +550,14 @@ function renderQr() {
 
   const fb = document.createElement("div"); fb.setAttribute("aria-live", "polite");
 
-  const answer = (choseOpen) => {
+  const answer = async (choseOpen) => {
     open.disabled = true; skip.disabled = true;
-    const correct = choseOpen === c.safe;
+    const choice = choseOpen ? "open" : "skip";
+    qrPicks.push(choice);
+    let correct = false;
+    if (window.crypto && crypto.subtle) {
+      correct = toHex(await sha256Raw("c" + qrIndex + ":" + choice + ":" + FLAG_SALT)) === QR_HASHES[qrIndex];
+    }
     if (correct) qrScore++;
     const box2 = document.createElement("div");
     box2.className = "feedback " + (correct ? "good" : "bad");
@@ -524,28 +580,53 @@ function renderQr() {
 }
 
 function renderQrDone() {
+  const perfect = qrScore === QR_CASES.length;
   const wrap = document.createElement("div");
   const h = document.createElement("h2");
   h.textContent = "You read " + qrScore + " of " + QR_CASES.length + " correctly.";
   const p = document.createElement("p");
   p.className = "note";
-  p.textContent = qrScore === QR_CASES.length
+  p.textContent = perfect
     ? "Perfect. Pete would be proud. Keep doing exactly this every time."
-    : "That is exactly why the preview matters. The address tells you most of the story if you read it carefully.";
+    : "Get all five right to capture the flag. Read the explanations, check the sections below, and try again.";
   wrap.append(h, p);
+  if (!perfect) {
+    const retry = document.createElement("button");
+    retry.type = "button"; retry.style.marginTop = "12px"; retry.textContent = "Try again";
+    retry.addEventListener("click", () => { qrIndex = 0; qrScore = 0; qrPicks = []; renderQr(); });
+    wrap.append(retry);
+  }
   $("qrBox").replaceChildren(wrap);
   showAfterQr();
+  if (perfect) unlockFlag();
 }
 
 async function showAfterQr() {
+  if (afterShown) return;
+  afterShown = true;
   await pause(500);
   $("typoPanel").hidden = false;
-  $("typoPanel").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
-  await pause(1200);
+  await pause(900);
   $("lesson").hidden = false;
-  await pause(300);
+}
+
+async function unlockFlag() {
+  try {
+    const key = await crypto.subtle.importKey("raw", await sha256Raw("flagkey:" + qrPicks.join(",") + ":" + FLAG_SALT),
+      { name: "AES-GCM" }, false, ["decrypt"]);
+    const bin = Uint8Array.from(atob(FLAG_BLOB), (c) => c.charCodeAt(0));
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: bin.slice(0, 12) }, key, bin.slice(12));
+    $("codeWord").textContent = new TextDecoder().decode(plain);
+  } catch (e) { return; }
+  if (CONFIG.nextUrl && CONFIG.nextLabel) {
+    $("nextLink").textContent = CONFIG.nextLabel;
+    $("nextLink").href = CONFIG.nextUrl;
+    $("nextWrap").hidden = false;
+  }
+  await pause(1200);
   $("prize").hidden = false;
   $("courses").hidden = false;
+  $("prize").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
 }
 
 /* ---------- main scan ---------- */
@@ -599,6 +680,8 @@ async function run() {
   $("fpValue").textContent = id;
 
   await pause(900);
+  $("whyPanel").hidden = false;
+  await pause(1500);
   const device = String(items[0].value || "device").replace(/\s*\(.*\)/, "");
   const browserName = String(items[1].value || "browser");
   const near = ip && ip.place ? " near " + ip.place : "";
@@ -622,17 +705,6 @@ function compareCodes() {
 }
 $("cmpBtn").addEventListener("click", compareCodes);
 $("cmpInput").addEventListener("keydown", (e) => { if (e.key === "Enter") compareCodes(); });
-
-$("claim").addEventListener("click", () => {
-  $("codeWord").textContent = CONFIG.codeWord;
-  $("codeWord").hidden = false;
-  $("claim").hidden = true;
-  if (CONFIG.nextUrl && CONFIG.nextLabel) {
-    $("nextLink").textContent = CONFIG.nextLabel;
-    $("nextLink").href = CONFIG.nextUrl;
-    $("nextWrap").hidden = false;
-  }
-});
 
 run();
 </script>
